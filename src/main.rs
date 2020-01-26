@@ -1,5 +1,8 @@
+use crypto::digest::Digest;
+use crypto::blake2b::Blake2b;
+
 fn main() {
-    let bloom = BloomFilter::new(1000, 0.1);
+    let mut bloom = BloomFilter::new(1000, 0.1);
     bloom.insert("hello");
     assert!(bloom.contains("hello"));
 }
@@ -27,8 +30,11 @@ impl BloomFilter {
         }
     }
 
-    fn insert(&self, key: &str) {
-        unimplemented!();
+    fn insert(&mut self, key: &str) {
+        let positions = self.hash_word(key, self.key_size, self.bitfield.len());
+        for position in positions {
+            self.bitfield[position] = true
+        }
     }
 
     fn contains(&self, key: &str) -> bool {
@@ -37,8 +43,14 @@ impl BloomFilter {
 
     fn hash_word(&self, key: &str, key_size: u32, bitfield_size: usize) -> Vec<usize> {
         let mut result = Vec::new();
-        for i in 0..key_size {
-            let position = 0;
+        let mut keys_buffer = vec![key.to_string()];
+        for _ in 0..key_size {
+            let mut hasher = Blake2b::new(8);
+            let k = keys_buffer.join("");
+            hasher.input_str(&k);
+            let digest = hasher.result_str();
+            let position = usize::from_str_radix(&digest, 16).unwrap() % bitfield_size;
+            keys_buffer.push(key.to_string());
             result.push(position);
         }
         result
@@ -72,5 +84,14 @@ mod tests {
     #[should_panic]
     fn check_invalid_bloom_filter_capacity() {
         BloomFilter::new(0, 1.0);
+    }
+
+    #[test]
+    fn insert_new_key() {
+        let mut filter = BloomFilter::new(2, 0.1);
+        filter.insert("hello");
+        assert_eq!(vec![false, true, false, false, false, false, true, false, false, false], filter.bitfield);
+        filter.insert("world");
+        assert_eq!(vec![true, true, false, true, false, false, true, true, true, false], filter.bitfield);
     }
 }
