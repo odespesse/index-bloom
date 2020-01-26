@@ -6,7 +6,6 @@ fn main() {
 
 struct BloomFilter {
     key_size: u32,
-    bitfield_size: u32,
     bitfield: Vec<bool>
 }
 
@@ -17,7 +16,6 @@ impl BloomFilter {
         let key_size = ((bitfield_size / capacity as f32) * 2.0_f32.ln()).ceil();
         BloomFilter {
             key_size: key_size as u32,
-            bitfield_size: bitfield_size as u32,
             bitfield: Vec::with_capacity(bitfield_size as usize)
         }
     }
@@ -30,7 +28,7 @@ impl BloomFilter {
         unimplemented!();
     }
 
-    fn hash_word(key: &str, key_size: u32, bitfield_size: u32) -> Vec<u32> {
+    fn hash_word(&self, key: &str, key_size: u32, bitfield_size: usize) -> Vec<usize> {
         let mut result = Vec::new();
         for i in 0..key_size {
             let position = 0;
