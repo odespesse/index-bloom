@@ -5,6 +5,7 @@ fn main() {
     let mut bloom = BloomFilter::new(1000, 0.1);
     bloom.insert("hello");
     assert!(bloom.contains("hello"));
+    assert!(!bloom.contains("bar"));
 }
 
 struct BloomFilter {
@@ -38,7 +39,8 @@ impl BloomFilter {
     }
 
     fn contains(&self, key: &str) -> bool {
-        unimplemented!();
+        let positions = self.hash_word(key, self.key_size, self.bitfield.len());
+        positions.into_iter().all(|position| self.bitfield[position] == true)
     }
 
     fn hash_word(&self, key: &str, key_size: u32, bitfield_size: usize) -> Vec<usize> {
@@ -93,5 +95,16 @@ mod tests {
         assert_eq!(vec![false, true, false, false, false, false, true, false, false, false], filter.bitfield);
         filter.insert("world");
         assert_eq!(vec![true, true, false, true, false, false, true, true, true, false], filter.bitfield);
+    }
+
+    #[test]
+    fn filter_contains_a_key() {
+        let mut filter = BloomFilter::new(2, 0.1);
+        filter.bitfield = vec![false, true, false, false, false, false, true, false, false, false];
+        assert!(filter.contains("hello"));
+        filter.bitfield = vec![true, true, false, true, false, false, true, true, true, false];
+        assert!(filter.contains("world"));
+
+        assert!(!filter.contains("foobar"));
     }
 }
