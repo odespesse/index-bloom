@@ -1,3 +1,4 @@
+mod index;
 mod bloom_filter;
 
 use crate::bloom_filter::BloomFilter;
