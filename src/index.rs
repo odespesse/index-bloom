@@ -1,3 +1,5 @@
+use std::fs::File;
+use std::io::Read;
 use crate::bloom_filter::BloomFilter;
 
 pub struct Index {
@@ -39,12 +41,21 @@ impl Index {
             self.bloom_filter.insert(&word);
         }
     }
+
+    fn index_file(&mut self, mut file: File) {
+        let mut content = String::new();
+        file.read_to_string(&mut content).expect("error while reading file");
+        for line in content.lines() {
+            self.index_sentence(line);
+        }
+    }
 }
 
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::File;
 
     #[test]
     fn white_space() {
@@ -76,5 +87,16 @@ mod tests {
         assert!(index.search("word12"));
         assert!(index.search("word13"));
         assert!(!index.search("?"));
+    }
+
+    #[test]
+    fn file_simple_content() {
+        let mut index = Index::new();
+        let file = File::open("./test/data/simple_content.txt").unwrap();
+        index.index_file(file);
+        assert!(index.search("word1"));
+        assert!(index.search("word2"));
+        assert!(index.search("word3"));
+        assert!(index.search("word4"));
     }
 }
