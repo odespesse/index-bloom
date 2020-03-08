@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Read;
+use std::fs;
 use crate::bloom_filter::BloomFilter;
 
 pub struct Index {
@@ -48,6 +49,19 @@ impl Index {
         for line in content.lines() {
             self.index_sentence(line);
         }
+    }
+
+    fn index_directory(&mut self, path: &str) {
+        for entry in fs::read_dir(path).unwrap() {
+			let entry = entry.unwrap();
+			let path = entry.path();
+
+			let metadata = fs::metadata(&path).unwrap();
+			if metadata.is_file() {
+				let file = File::open(path).unwrap();
+				self.index_file(file);
+			}
+		}
     }
 }
 
@@ -99,4 +113,17 @@ mod tests {
         assert!(index.search("word3"));
         assert!(index.search("word4"));
     }
+
+    #[test]
+    fn simple_directory_content() {
+       let mut index = Index::new();
+       let directory_path = "./test/data/simple_directory";
+       index.index_directory(directory_path);
+       assert!(index.search("word1"));
+       assert!(index.search("word2"));
+       assert!(index.search("word3"));
+       assert!(index.search("word4"));
+       assert!(index.search("word5"));
+    }
 }
+
