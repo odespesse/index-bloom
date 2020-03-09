@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::Read;
 use std::fs;
 use crate::bloom_filter::BloomFilter;
+use std::path::PathBuf;
 
 pub struct Index {
     bloom_filter: BloomFilter
@@ -43,8 +44,9 @@ impl Index {
         }
     }
 
-    fn index_file(&mut self, mut file: File) {
+    fn index_file(&mut self, path: PathBuf) {
         let mut content = String::new();
+        let mut file = File::open(path).unwrap();
         match file.read_to_string(&mut content) {
             Ok(_) => {
                 for line in content.lines() {
@@ -55,15 +57,14 @@ impl Index {
         }
     }
 
-    fn index_directory(&mut self, path: &str) {
+    fn index_directory(&mut self, path: PathBuf) {
         for entry in fs::read_dir(path).unwrap() {
 			let entry = entry.unwrap();
 			let path = entry.path();
 
 			let metadata = fs::metadata(&path).unwrap();
 			if metadata.is_file() {
-				let file = File::open(path).unwrap();
-				self.index_file(file);
+				self.index_file(path);
 			}
 		}
     }
@@ -73,7 +74,6 @@ impl Index {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::File;
 
     #[test]
     fn white_space() {
@@ -110,8 +110,7 @@ mod tests {
     #[test]
     fn file_simple_content() {
         let mut index = Index::new();
-        let file = File::open("./test/data/simple_content.txt").unwrap();
-        index.index_file(file);
+        index.index_file(PathBuf::from("./test/data/simple_content.txt"));
         assert!(index.search("word1"));
         assert!(index.search("word2"));
         assert!(index.search("word3"));
@@ -121,8 +120,7 @@ mod tests {
     #[test]
     fn simple_directory_content() {
        let mut index = Index::new();
-       let directory_path = "./test/data/simple_directory";
-       index.index_directory(directory_path);
+       index.index_directory(PathBuf::from("./test/data/simple_directory"));
        assert!(index.search("word1"));
        assert!(index.search("word2"));
        assert!(index.search("word3"));
@@ -133,8 +131,7 @@ mod tests {
     #[test]
     fn random_directory_content() {
         let mut index = Index::new();
-        let directory_path = "./test/data/random_directory";
-        index.index_directory(directory_path);
+        index.index_directory(PathBuf::from("./test/data/random_directory"));
         assert!(index.search("word1"));
         assert!(index.search("word2"));
         assert!(index.search("word3"));
