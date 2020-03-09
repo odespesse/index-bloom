@@ -45,9 +45,13 @@ impl Index {
 
     fn index_file(&mut self, mut file: File) {
         let mut content = String::new();
-        file.read_to_string(&mut content).expect("error while reading file");
-        for line in content.lines() {
-            self.index_sentence(line);
+        match file.read_to_string(&mut content) {
+            Ok(_) => {
+                for line in content.lines() {
+                    self.index_sentence(line);
+                }
+            },
+            Err(_) => eprintln!("Error reading file")
         }
     }
 
@@ -124,6 +128,18 @@ mod tests {
        assert!(index.search("word3"));
        assert!(index.search("word4"));
        assert!(index.search("word5"));
+    }
+
+    #[test]
+    fn random_directory_content() {
+        let mut index = Index::new();
+        let directory_path = "./test/data/random_directory";
+        index.index_directory(directory_path);
+        assert!(index.search("word1"));
+        assert!(index.search("word2"));
+        assert!(index.search("word3"));
+        assert!(!index.search("word4"));
+        assert!(!index.search("word5"));
     }
 }
 
