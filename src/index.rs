@@ -17,13 +17,19 @@ impl Index {
         }
     }
 
-    pub fn search(&self, keywords: &str) -> Option<&PathBuf> {
+    pub fn search(&self, keywords: &str) -> Option<Vec<&PathBuf>> {
+        let mut result :Vec<&PathBuf> = Vec::new();
         for (path, filter) in &self.bloom_filters {
             if filter.contains(keywords) {
-                return Some(path);
+                result.push(path);
             }
         }
-        return None;
+        return if result.len() > 0 {
+            result.sort();
+            Some(result)
+        } else {
+            None
+        }
     }
 
     fn index_sentence(&mut self, words: &str, filter: &mut BloomFilter) {
@@ -155,32 +161,42 @@ mod tests {
     fn file_simple_content() {
         let mut index = Index::new();
         index.index_file(PathBuf::from("./test/data/simple_content.txt"));
-        assert_eq!(Path::new("./test/data/simple_content.txt"), index.search("word1").unwrap().as_path());
-        assert_eq!(Path::new("./test/data/simple_content.txt"), index.search("word2").unwrap().as_path());
-        assert_eq!(Path::new("./test/data/simple_content.txt"), index.search("word3").unwrap().as_path());
-        assert_eq!(Path::new("./test/data/simple_content.txt"), index.search("word4").unwrap().as_path());
+        assert_eq!(vec![Path::new("./test/data/simple_content.txt")], index.search("word1").unwrap());
+        assert_eq!(vec![Path::new("./test/data/simple_content.txt")], index.search("word2").unwrap());
+        assert_eq!(vec![Path::new("./test/data/simple_content.txt")], index.search("word3").unwrap());
+        assert_eq!(vec![Path::new("./test/data/simple_content.txt")], index.search("word4").unwrap());
     }
 
     #[test]
     fn simple_directory_content() {
        let mut index = Index::new();
        index.index_directory(PathBuf::from("./test/data/simple_directory"));
-       assert_eq!(Path::new("./test/data/simple_directory/file1.txt"), index.search("word1").unwrap().as_path());
-       assert_eq!(Path::new("./test/data/simple_directory/file1.txt"), index.search("word2").unwrap().as_path());
-       assert_eq!(Path::new("./test/data/simple_directory/file1.txt"), index.search("word3").unwrap().as_path());
-       assert_eq!(Path::new("./test/data/simple_directory/file2.txt"), index.search("word4").unwrap().as_path());
-       assert_eq!(Path::new("./test/data/simple_directory/file2.txt"), index.search("word5").unwrap().as_path());
+       assert_eq!(vec![Path::new("./test/data/simple_directory/file1.txt")], index.search("word1").unwrap());
+       assert_eq!(vec![Path::new("./test/data/simple_directory/file1.txt")], index.search("word2").unwrap());
+       assert_eq!(vec![Path::new("./test/data/simple_directory/file1.txt")], index.search("word3").unwrap());
+       assert_eq!(vec![Path::new("./test/data/simple_directory/file2.txt")], index.search("word4").unwrap());
+       assert_eq!(vec![Path::new("./test/data/simple_directory/file2.txt")], index.search("word5").unwrap());
     }
 
     #[test]
     fn random_directory_content() {
         let mut index = Index::new();
         index.index_directory(PathBuf::from("./test/data/random_directory"));
-        assert_eq!(Path::new("./test/data/random_directory/file1.txt"), index.search("word1").unwrap().as_path());
-        assert_eq!(Path::new("./test/data/random_directory/file1.txt"), index.search("word2").unwrap().as_path());
-        assert_eq!(Path::new("./test/data/random_directory/file1.txt"), index.search("word3").unwrap().as_path());
+        assert_eq!(vec![Path::new("./test/data/random_directory/file1.txt")], index.search("word1").unwrap());
+        assert_eq!(vec![Path::new("./test/data/random_directory/file1.txt")], index.search("word2").unwrap());
+        assert_eq!(vec![Path::new("./test/data/random_directory/file1.txt")], index.search("word3").unwrap());
         assert_eq!(None, index.search("word4"));
         assert_eq!(None, index.search("word5"));
     }
-}
 
+    #[test]
+    fn several_matches() {
+        let mut index = Index::new();
+        index.index_directory(PathBuf::from("./test/data/several_matches_directory"));
+        let expected = vec![Path::new("./test/data/several_matches_directory/file1.txt")];
+        assert_eq!(expected, index.search("word2").unwrap());
+        let expected = vec![Path::new("./test/data/several_matches_directory/file1.txt"), Path::new("./test/data/several_matches_directory/file2.txt")];
+        assert_eq!(index.search("word1").unwrap(), expected);
+        assert_eq!(index.search("word3").unwrap(), expected);
+    }
+}
