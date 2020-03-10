@@ -20,7 +20,7 @@ impl Index {
     pub fn search(&self, keywords: &str) -> Option<Vec<&PathBuf>> {
         let mut result :Vec<&PathBuf> = Vec::new();
         for (path, filter) in &self.bloom_filters {
-            if filter.contains(keywords) {
+            if  keywords.split_whitespace().all(|keyword| filter.contains(keyword) ) {
                 result.push(path);
             }
         }
@@ -198,5 +198,13 @@ mod tests {
         let expected = vec![Path::new("./test/data/several_matches_directory/file1.txt"), Path::new("./test/data/several_matches_directory/file2.txt")];
         assert_eq!(index.search("word1").unwrap(), expected);
         assert_eq!(index.search("word3").unwrap(), expected);
+    }
+
+    #[test]
+    fn multi_keywords_search() {
+        let mut index = Index::new();
+        index.index_directory(PathBuf::from("./test/data/several_matches_directory"));
+        let expected = vec![Path::new("./test/data/several_matches_directory/file1.txt")];
+        assert_eq!(expected, index.search("word1 word2").unwrap());
     }
 }
