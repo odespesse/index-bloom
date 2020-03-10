@@ -37,13 +37,19 @@ impl Index {
                             .replace(":", "")
                             .replace("/", "")
                             .replace("&", "")
+                            .replace("#", "")
+                            .replace("*", "")
+                            .replace("_", "")
                             .replace("(", "")
                             .replace(")", "")
                             .replace("[", "")
                             .replace("]", "")
                             .replace("{", "")
                             .replace("}", "")
+                            .replace("<", "")
+                            .replace(">", "")
                             .replace("'", "")
+                            .replace("`", "")
                             .replace("\"", ""))
             .filter(|word| !word.is_empty());
         for word in words_list {
@@ -102,7 +108,28 @@ mod tests {
     fn punctuation() {
         let mut index = Index::new();
         let mut filter = BloomFilter::new(1000, 0.1);
-        index.index_sentence("word1. word2! word3? word4, word5; word6: word7/ word8& (word9) [word10] {word11} 'word12' \"word13\" ? ", &mut filter);
+        let sentence = [
+            "word1.",
+            "word2!",
+            "word3?",
+            "word4,",
+            "word5;",
+            "word6:",
+            "word7/",
+            "word8&",
+            "(word9)",
+            "[word10]",
+            "{word11}",
+            "'word12'",
+            "\"word13\"",
+            "<word14>",
+            "`word15`",
+            "*word16*",
+            "__word17__",
+            "?",
+            "#"
+        ].join(" ");
+        index.index_sentence(&sentence, &mut filter);
         assert!(filter.contains("word1"));
         assert!(filter.contains("word2"));
         assert!(filter.contains("word3"));
@@ -116,7 +143,12 @@ mod tests {
         assert!(filter.contains("word11"));
         assert!(filter.contains("word12"));
         assert!(filter.contains("word13"));
+        assert!(filter.contains("word14"));
+        assert!(filter.contains("word15"));
+        assert!(filter.contains("word16"));
+        assert!(filter.contains("word17"));
         assert!(!filter.contains("?"));
+        assert!(!filter.contains("#"));
     }
 
     #[test]
