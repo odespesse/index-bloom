@@ -80,10 +80,10 @@ mod tests {
         let mut index = Index::new();
         let mut filter = BloomFilter::new(1000, 0.1);
         index.index_sentence("Word1 word2, word3. Word4!", &mut filter);
-        assert!(filter.contains("Word1"));
+        assert!(filter.contains("word1"));
         assert!(filter.contains("word2"));
         assert!(filter.contains("word3"));
-        assert!(filter.contains("Word4"));
+        assert!(filter.contains("word4"));
     }
 
     #[test]
@@ -142,6 +142,6 @@ mod tests {
         let mut index = Index::new();
         index.index_directory(PathBuf::from("./test/data/simple_directory"));
         let expected = vec![Path::new("./test/data/simple_directory/file1.txt")];
-        assert_eq!(index.search("(word1) word2, word3?").unwrap(), expected);
+        assert_eq!(index.search("(word1) Word2, word3?").unwrap(), expected);
     }
 }

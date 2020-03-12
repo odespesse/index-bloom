@@ -1,4 +1,5 @@
 use std::str::SplitWhitespace;
+use unidecode::unidecode;
 
 pub struct Tokens<'a> {
     words: SplitWhitespace<'a>
@@ -42,7 +43,8 @@ impl<'a> Iterator for Tokens<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         while let Some(word) = self.words.next() {
-            let token = self.clean_word(word);
+            let ascii_word = unidecode(word);
+            let token = self.clean_word(&ascii_word).to_lowercase();
             if !token.is_empty() {
                 return Some(token)
             }
@@ -109,6 +111,15 @@ mod tests {
         assert_eq!(tokens.next().unwrap(), "word15");
         assert_eq!(tokens.next().unwrap(), "word16");
         assert_eq!(tokens.next().unwrap(), "word17");
+        assert_eq!(tokens.next(), None);
+    }
+
+    #[test]
+    fn normalize_words() {
+        let mut tokens = Tokens::new("WORD1 word2 éèêàïùç");
+        assert_eq!(tokens.next().unwrap(), "word1");
+        assert_eq!(tokens.next().unwrap(), "word2");
+        assert_eq!(tokens.next().unwrap(), "eeeaiuc");
         assert_eq!(tokens.next(), None);
     }
 }
