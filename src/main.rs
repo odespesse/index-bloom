@@ -1,5 +1,6 @@
 mod index;
 mod bloom_filter;
+mod tokens;
 
 use crate::bloom_filter::BloomFilter;
 

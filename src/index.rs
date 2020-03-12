@@ -1,10 +1,11 @@
 use std::fs::File;
 use std::io::Read;
 use std::fs;
+use std::path::PathBuf;
 use std::collections::HashMap;
 
 use crate::bloom_filter::BloomFilter;
-use std::path::PathBuf;
+use crate::tokens::Tokens;
 
 pub struct Index {
     bloom_filters: HashMap<PathBuf, BloomFilter>
@@ -20,7 +21,8 @@ impl Index {
     pub fn search(&self, keywords: &str) -> Option<Vec<&PathBuf>> {
         let mut result :Vec<&PathBuf> = Vec::new();
         for (path, filter) in &self.bloom_filters {
-            if  keywords.split_whitespace().all(|keyword| filter.contains(keyword) ) {
+            let mut tokens = Tokens::new(keywords);
+            if  tokens.all(|token| filter.contains(&token) ) {
                 result.push(path);
             }
         }
@@ -33,33 +35,9 @@ impl Index {
     }
 
     fn index_sentence(&mut self, words: &str, filter: &mut BloomFilter) {
-        let words_list = words
-            .split_whitespace()
-            .map(|word| word.replace(".", "")
-                            .replace("!", "")
-                            .replace("?", "")
-                            .replace(",", "")
-                            .replace(";", "")
-                            .replace(":", "")
-                            .replace("/", "")
-                            .replace("&", "")
-                            .replace("#", "")
-                            .replace("*", "")
-                            .replace("_", "")
-                            .replace("(", "")
-                            .replace(")", "")
-                            .replace("[", "")
-                            .replace("]", "")
-                            .replace("{", "")
-                            .replace("}", "")
-                            .replace("<", "")
-                            .replace(">", "")
-                            .replace("'", "")
-                            .replace("`", "")
-                            .replace("\"", ""))
-            .filter(|word| !word.is_empty());
-        for word in words_list {
-            filter.insert(&word);
+        let tokens = Tokens::new(words);
+        for token in tokens {
+            filter.insert(&token);
         }
     }
 
@@ -101,60 +79,11 @@ mod tests {
     fn white_space() {
         let mut index = Index::new();
         let mut filter = BloomFilter::new(1000, 0.1);
-        index.index_sentence("word1 word2  word3  word4\nword5\tword6", &mut filter);
-        assert!(filter.contains("word1"));
+        index.index_sentence("Word1 word2, word3. Word4!", &mut filter);
+        assert!(filter.contains("Word1"));
         assert!(filter.contains("word2"));
         assert!(filter.contains("word3"));
-        assert!(filter.contains("word4"));
-        assert!(filter.contains("word5"));
-        assert!(filter.contains("word6"));
-    }
-
-    #[test]
-    fn punctuation() {
-        let mut index = Index::new();
-        let mut filter = BloomFilter::new(1000, 0.1);
-        let sentence = [
-            "word1.",
-            "word2!",
-            "word3?",
-            "word4,",
-            "word5;",
-            "word6:",
-            "word7/",
-            "word8&",
-            "(word9)",
-            "[word10]",
-            "{word11}",
-            "'word12'",
-            "\"word13\"",
-            "<word14>",
-            "`word15`",
-            "*word16*",
-            "__word17__",
-            "?",
-            "#"
-        ].join(" ");
-        index.index_sentence(&sentence, &mut filter);
-        assert!(filter.contains("word1"));
-        assert!(filter.contains("word2"));
-        assert!(filter.contains("word3"));
-        assert!(filter.contains("word4"));
-        assert!(filter.contains("word5"));
-        assert!(filter.contains("word6"));
-        assert!(filter.contains("word7"));
-        assert!(filter.contains("word8"));
-        assert!(filter.contains("word9"));
-        assert!(filter.contains("word10"));
-        assert!(filter.contains("word11"));
-        assert!(filter.contains("word12"));
-        assert!(filter.contains("word13"));
-        assert!(filter.contains("word14"));
-        assert!(filter.contains("word15"));
-        assert!(filter.contains("word16"));
-        assert!(filter.contains("word17"));
-        assert!(!filter.contains("?"));
-        assert!(!filter.contains("#"));
+        assert!(filter.contains("Word4"));
     }
 
     #[test]
@@ -206,5 +135,13 @@ mod tests {
         index.index_directory(PathBuf::from("./test/data/several_matches_directory"));
         let expected = vec![Path::new("./test/data/several_matches_directory/file1.txt")];
         assert_eq!(expected, index.search("word1 word2").unwrap());
+    }
+
+    #[test]
+    fn clean_keywords_before_search() {
+        let mut index = Index::new();
+        index.index_directory(PathBuf::from("./test/data/simple_directory"));
+        let expected = vec![Path::new("./test/data/simple_directory/file1.txt")];
+        assert_eq!(index.search("(word1) word2, word3?").unwrap(), expected);
     }
 }
