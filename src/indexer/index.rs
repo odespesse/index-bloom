@@ -4,8 +4,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::collections::HashMap;
 
-use crate::bloom_filter::BloomFilter;
-use crate::tokens::Tokens;
+use crate::indexer::bloom_filter::BloomFilter;
+use crate::indexer::tokens::Tokens;
 
 pub struct Index {
     bloom_filters: HashMap<PathBuf, BloomFilter>
@@ -15,6 +15,18 @@ impl Index {
     pub fn new() -> Self {
         Index{
             bloom_filters: HashMap::new()
+        }
+    }
+
+    pub fn index_directory(&mut self, path: PathBuf) {
+        for entry in fs::read_dir(path).unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+
+            let metadata = fs::metadata(&path).unwrap();
+            if metadata.is_file() {
+                self.index_file(path);
+            }
         }
     }
 
@@ -54,18 +66,6 @@ impl Index {
             },
             Err(_) => eprintln!("Error reading file")
         }
-    }
-
-    fn index_directory(&mut self, path: PathBuf) {
-        for entry in fs::read_dir(path).unwrap() {
-			let entry = entry.unwrap();
-			let path = entry.path();
-
-			let metadata = fs::metadata(&path).unwrap();
-			if metadata.is_file() {
-				self.index_file(path);
-			}
-		}
     }
 }
 

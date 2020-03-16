@@ -1,12 +1,10 @@
-mod index;
-mod bloom_filter;
-mod tokens;
+mod indexer;
 
-use crate::bloom_filter::BloomFilter;
+use crate::indexer::index::Index;
+use std::path::{PathBuf, Path};
 
 fn main() {
-    let mut bloom = BloomFilter::new(1000, 0.1);
-    bloom.insert("hello");
-    assert!(bloom.contains("hello"));
-    assert!(!bloom.contains("bar"));
+    let mut index = Index::new();
+    index.index_directory(PathBuf::from("./test/data/simple_directory"));
+    assert_eq!(vec![Path::new("./test/data/simple_directory/file1.txt")], index.search("word1").unwrap());
 }
