@@ -18,17 +18,17 @@ impl Index {
         }
     }
 
-    pub fn index_directory(&mut self, path: PathBuf) {
-        for entry in fs::read_dir(path).unwrap() {
-            let entry = entry.unwrap();
-            let path = entry.path();
-
-            let metadata = fs::metadata(&path).unwrap();
-            if metadata.is_file() {
-                self.index_file(path);
-            }
+    pub fn index(&mut self, source: &str) {
+        let src_path = PathBuf::from(source);
+        if src_path.is_file() {
+            self.index_file(src_path);
+        } else if src_path.is_dir() {
+            self.index_directory(src_path);
+        } else {
+            panic!("source type must be file or directory");
         }
     }
+
 
     pub fn search(&self, keywords: &str) -> Option<Vec<&PathBuf>> {
         let mut result :Vec<&PathBuf> = Vec::new();
@@ -46,10 +46,15 @@ impl Index {
         }
     }
 
-    fn index_sentence(&mut self, words: &str, filter: &mut BloomFilter) {
-        let tokens = Tokens::new(words);
-        for token in tokens {
-            filter.insert(&token);
+    fn index_directory(&mut self, path: PathBuf) {
+        for entry in fs::read_dir(path).unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+
+            let metadata = fs::metadata(&path).unwrap();
+            if metadata.is_file() {
+                self.index_file(path);
+            }
         }
     }
 
@@ -65,6 +70,13 @@ impl Index {
                 self.bloom_filters.insert(path, filter);
             },
             Err(_) => eprintln!("Error reading file")
+        }
+    }
+
+    fn index_sentence(&mut self, words: &str, filter: &mut BloomFilter) {
+        let tokens = Tokens::new(words);
+        for token in tokens {
+            filter.insert(&token);
         }
     }
 }
@@ -84,6 +96,28 @@ mod tests {
         assert!(filter.contains("word2"));
         assert!(filter.contains("word3"));
         assert!(filter.contains("word4"));
+    }
+
+    #[test]
+    fn index_source_is_file() {
+        let mut index = Index::new();
+        index.index("./test/data/simple_content.txt");
+        assert_eq!(vec![Path::new("./test/data/simple_content.txt")], index.search("word1").unwrap());
+    }
+
+    #[test]
+    fn index_source_is_directory() {
+        let mut index = Index::new();
+        index.index("./test/data/simple_directory");
+        assert_eq!(vec![Path::new("./test/data/simple_directory/file1.txt")], index.search("word1").unwrap());
+        assert_eq!(vec![Path::new("./test/data/simple_directory/file2.txt")], index.search("word4").unwrap());
+    }
+
+    #[test]
+    #[should_panic(expected="source type must be file or directory")]
+    fn index_source_is_unsupported() {
+        let mut index = Index::new();
+        index.index("./test/unknown_source");
     }
 
     #[test]
