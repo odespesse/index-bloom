@@ -1,10 +1,23 @@
 mod indexer;
 
 use crate::indexer::index::Index;
-use std::path::Path;
+use clap::{App, Arg};
 
 fn main() {
+    let matches = App::new("web-bloom")
+                   .version("1.0")
+                   .about("A lightweight search engine for the Web.")
+                   .arg(Arg::with_name("source")
+                        .short("s")
+                        .long("source")
+                        .help("Path to the file or directory to index")
+                        .takes_value(true)
+                        .required(true))
+                   .get_matches();
+
+    let source = matches.value_of("source").unwrap();
     let mut index = Index::new();
-    index.index("./test/data/simple_directory");
-    assert_eq!(vec![Path::new("./test/data/simple_directory/file1.txt")], index.search("word1").unwrap());
+    index.index(source);
+    assert!(index.search("word2"));
 }
+
