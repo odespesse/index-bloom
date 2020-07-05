@@ -1,0 +1,1 @@
+{"capacity":5,"error_rate":0.1,"bloom_filters":{"./test/data/simple_directory/file1.txt":{"key_size":4,"bitfield":[false,false,false,false,false,true,true,true,true,true,true,false,true,false,false,false,true,false,false,false,false,false,false,false]}}}

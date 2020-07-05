@@ -1,19 +1,28 @@
 use std::fs::File;
+use std::path::Path;
 use std::io::Read;
+use std::io::Write;
 use std::fs;
 use std::path::PathBuf;
 use std::collections::HashMap;
 
+use serde::{Serialize, Deserialize};
+
 use crate::indexer::bloom_filter::BloomFilter;
 use crate::indexer::tokens::Tokens;
 
+#[derive(Serialize, Deserialize)]
 pub struct Index {
+    capacity: u32,
+    error_rate: f32,
     bloom_filters: HashMap<PathBuf, BloomFilter>
 }
 
 impl Index {
     pub fn new() -> Self {
-        Index{
+        Index {
+            capacity: 1000,
+            error_rate: 0.1,
             bloom_filters: HashMap::new()
         }
     }
@@ -29,7 +38,6 @@ impl Index {
         }
     }
 
-
     pub fn search(&self, keywords: &str) -> Option<Vec<&PathBuf>> {
         let mut result :Vec<&PathBuf> = Vec::new();
         for (path, filter) in &self.bloom_filters {
@@ -44,6 +52,23 @@ impl Index {
         } else {
             None
         }
+    }
+
+    pub fn restore(path :&str) -> Self {
+        if Path::new(path).is_file() {
+            let serialized = std::fs::read_to_string(path).unwrap();
+            let deserialized: Index = serde_json::from_str(&serialized).unwrap();
+            deserialized
+        } else {
+            panic!("file not found");
+        }
+    }
+
+    pub fn dump(&self, path: &str) {
+        let dest = Path::new(&path);
+        let mut output_file = File::create(dest).unwrap();
+        let serialized = serde_json::to_string(&self).unwrap();
+        write!(output_file, "{}\n", serialized).unwrap();
     }
 
     fn index_directory(&mut self, path: PathBuf) {
@@ -63,7 +88,7 @@ impl Index {
         let mut file = File::open(&path).unwrap();
         match file.read_to_string(&mut content) {
             Ok(_) => {
-                let mut filter = BloomFilter::new(1000, 0.1);
+                let mut filter = BloomFilter::new(self.capacity, self.error_rate);
                 for line in content.lines() {
                     self.index_sentence(line, &mut filter);
                 }
@@ -79,6 +104,7 @@ impl Index {
             filter.insert(&token);
         }
     }
+
 }
 
 
@@ -177,5 +203,29 @@ mod tests {
         index.index_directory(PathBuf::from("./test/data/simple_directory"));
         let expected = vec![Path::new("./test/data/simple_directory/file1.txt")];
         assert_eq!(index.search("(word1) Word2, word3?").unwrap(), expected);
+    }
+
+    #[test]
+    fn restore_index() {
+        let index = Index::restore("./test/data/simple_dump.json");
+        let expected = vec![Path::new("./test/data/simple_directory/file1.txt")];
+        assert_eq!(index.search("(word1) Word2, word3?").unwrap(), expected);
+    }
+
+    #[test]
+    fn dump_index() {
+        let mut index = Index {
+            capacity: 5,
+            error_rate: 0.1,
+            bloom_filters: HashMap::new()
+        };
+        index.index("./test/data/simple_content.txt");
+        let mut dest_file = std::env::temp_dir();
+        dest_file.push("bloom_dump.json");
+        index.dump(dest_file.as_path().to_str().unwrap());
+        let expected = "{\"capacity\":5,\"error_rate\":0.1,\"bloom_filters\":{\"./test/data/simple_content.txt\":{\"key_size\":4,\"bitfield\":[true,false,false,true,false,true,true,true,true,true,true,false,true,false,false,false,true,false,false,false,false,true,false,false]}}}\n";
+        let actual = fs::read_to_string(&dest_file).unwrap();
+        assert_eq!(actual, expected);
+        fs::remove_file(dest_file).unwrap();
     }
 }
