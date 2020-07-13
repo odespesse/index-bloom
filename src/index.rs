@@ -8,8 +8,8 @@ use std::collections::HashMap;
 
 use serde::{Serialize, Deserialize};
 
-use crate::indexer::bloom_filter::BloomFilter;
-use crate::indexer::tokens::Tokens;
+use crate::bloom_filter::BloomFilter;
+use crate::tokens::Tokens;
 
 #[derive(Serialize, Deserialize)]
 pub struct Index {

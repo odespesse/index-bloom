@@ -1,5 +1,5 @@
 [package]
-name = "web-bloom"
+name = "index-bloom"
 version = "0.1.0"
 authors = ["Olivier Despesse <olived19@gmail.com>"]
 edition = "2018"
@@ -9,7 +9,6 @@ edition = "2018"
 [dependencies]
 rust-crypto = "0.2.36"
 unidecode = "0.3.0"
-clap = "2.33.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tempfile = "3.1.0"
