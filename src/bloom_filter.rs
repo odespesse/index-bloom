@@ -1,8 +1,6 @@
 use crypto::digest::Digest;
 use crypto::blake2b::Blake2b;
-use serde::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize)]
 pub struct BloomFilter {
     key_size: u32,
     bitfield: Vec<bool>

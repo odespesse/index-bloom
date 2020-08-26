@@ -122,4 +122,11 @@ mod tests {
         assert_eq!(tokens.next().unwrap(), "eeeaiuc");
         assert_eq!(tokens.next(), None);
     }
+
+    #[test]
+    fn empty_tokens() {
+        let mut tokens = Tokens::new("");
+        assert_eq!(tokens.next(), None);
+        tokens.for_each(|_| assert!(false));
+    }
 }
