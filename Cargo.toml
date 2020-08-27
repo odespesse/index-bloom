@@ -9,3 +9,5 @@ edition = "2018"
 [dependencies]
 rust-crypto = "0.2.36"
 unidecode = "0.3.0"
+serde = { version = "1.0", features = ["derive"] }
+

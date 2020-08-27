@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use serde::{Serialize, Deserialize};
 
 use crate::bloom_filter::BloomFilter;
 use crate::tokens::Tokens;
 
+#[derive(Serialize, Deserialize)]
 pub struct Index {
     capacity: u32,
     error_rate: f32,
