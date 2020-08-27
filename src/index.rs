@@ -20,6 +20,14 @@ impl Index {
         }
     }
 
+    pub fn with_params(capacity: u32, error_rate: f32) -> Self {
+        Index {
+            capacity,
+            error_rate,
+            bloom_filters: HashMap::new()
+        }
+    }
+
     pub fn index(&mut self, name: String, content: &str) {
         let filter = self.bloom_filters.entry(name).or_insert(BloomFilter::new(self.capacity, self.error_rate));
         for line in content.lines() {
