@@ -1,5 +1,6 @@
-use crypto::digest::Digest;
-use crypto::blake2b::Blake2b;
+use std::str;
+use blake2::VarBlake2b;
+use blake2::digest::{Update, VariableOutput};
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
@@ -40,15 +41,17 @@ impl BloomFilter {
 
     fn hash_word(&self, key: &str, key_size: u32, bitfield_size: usize) -> Vec<usize> {
         let mut result = Vec::new();
-        let mut keys_buffer = vec![key.to_string()];
+        let mut keys_buffer = Vec::new();
         for _ in 0..key_size {
-            let mut hasher = Blake2b::new(8);
-            let k = keys_buffer.join("");
-            hasher.input_str(&k);
-            let digest = hasher.result_str();
-            let position = usize::from_str_radix(&digest, 16).unwrap() % bitfield_size;
             keys_buffer.push(key.to_string());
-            result.push(position);
+            let mut hasher = VarBlake2b::new(8).unwrap();
+            let k = keys_buffer.join("");
+            hasher.update(&k);
+            hasher.finalize_variable(|digest| {
+                let a = digest.iter().map(|d| format!("{:x}", d)).collect::<Vec<String>>().join("");
+                let position = usize::from_str_radix(&a, 16).unwrap() % bitfield_size;
+                result.push(position);
+            });
         }
         result
     }
