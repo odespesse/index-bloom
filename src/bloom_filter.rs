@@ -3,12 +3,13 @@ use std::cell::RefCell;
 use blake2::VarBlake2b;
 use blake2::digest::{Update, VariableOutput};
 use serde::{Serialize, Deserialize};
+use bitvec::prelude::*;
 use crate::errors::Error;
 
 #[derive(Serialize, Deserialize)]
 pub struct BloomFilter {
     key_size: u32,
-    bitfield: Vec<bool>
+    bitfield: BitVec
 }
 
 impl BloomFilter {
@@ -19,7 +20,7 @@ impl BloomFilter {
         let factor = (1.0/2.0_f32.powf(2.0_f32.ln())).ln();
         let bitfield_size = ((capacity as f32 * err_rate.ln()) / factor).ceil();
         let key_size = ((bitfield_size / capacity as f32) * 2.0_f32.ln()).ceil();
-        let mut bitfield = Vec::with_capacity(bitfield_size as usize);
+        let mut bitfield = BitVec::with_capacity(bitfield_size as usize);
         for _ in 0..(bitfield_size as usize) {
             bitfield.push(false);
         }
@@ -32,7 +33,7 @@ impl BloomFilter {
     pub fn insert(&mut self, key: &str) -> Result<(), Error> {
         let positions = self.hash_word(key, self.key_size, self.bitfield.len())?;
         for position in positions {
-            self.bitfield[position] = true
+            self.bitfield.set(position, true);
         }
         Ok(())
     }
@@ -98,18 +99,18 @@ mod tests {
     fn insert_new_key() {
         let mut filter = BloomFilter::new(2, 0.1);
         filter.insert("hello").expect("Unable to insert token in filter");
-        assert_eq!(vec![false, true, false, false, false, false, true, false, false, false], filter.bitfield);
+        assert_eq!(bitvec![0, 1, 0, 0, 0, 0, 1, 0, 0, 0], filter.bitfield);
         filter.insert("world").expect("Unable to insert token in filter");
-        assert_eq!(vec![true, true, false, true, false, false, true, true, true, false], filter.bitfield);
+        assert_eq!(bitvec![1, 1, 0, 1, 0, 0, 1, 1, 1, 0], filter.bitfield);
     }
 
     #[test]
     fn filter_contains_a_key() {
         let mut filter = BloomFilter::new(2, 0.1);
-        filter.bitfield = vec![false, true, false, false, false, false, true, false, false, false];
+        filter.bitfield = bitvec![0, 1, 0, 0, 0, 0, 1, 0, 0, 0];
         assert!(filter.contains("hello").is_ok());
         assert!(filter.contains("hello").unwrap());
-        filter.bitfield = vec![true, true, false, true, false, false, true, true, true, false];
+        filter.bitfield = bitvec![1, 1, 0, 1, 0, 0, 1, 1, 1, 0];
         assert!(filter.contains("world").unwrap());
 
         assert!(!filter.contains("foobar").unwrap());
