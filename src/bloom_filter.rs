@@ -48,7 +48,7 @@ impl BloomFilter {
         let mut keys_buffer = Vec::new();
         for _ in 0..key_size {
             keys_buffer.push(key.to_string());
-            let mut hasher = VarBlake2b::new(8).unwrap();
+            let mut hasher = VarBlake2b::new(4).unwrap();
             let k = keys_buffer.join("");
             hasher.update(&k);
             let test: RefCell<Vec<u8>> = RefCell::new(vec![]);
@@ -99,18 +99,18 @@ mod tests {
     fn insert_new_key() {
         let mut filter = BloomFilter::new(2, 0.1);
         filter.insert("hello").expect("Unable to insert token in filter");
-        assert_eq!(bitvec![0, 1, 0, 0, 0, 0, 1, 0, 0, 0], filter.bitfield);
+        assert_eq!(bitvec![1, 1, 0, 1, 0, 1, 0, 0, 0, 0], filter.bitfield);
         filter.insert("world").expect("Unable to insert token in filter");
-        assert_eq!(bitvec![1, 1, 0, 1, 0, 0, 1, 1, 1, 0], filter.bitfield);
+        assert_eq!(bitvec![1, 1, 0, 1, 0, 1, 1, 0, 1, 0], filter.bitfield);
     }
 
     #[test]
     fn filter_contains_a_key() {
         let mut filter = BloomFilter::new(2, 0.1);
-        filter.bitfield = bitvec![0, 1, 0, 0, 0, 0, 1, 0, 0, 0];
+        filter.bitfield = bitvec![1, 1, 0, 1, 0, 1, 0, 0, 0, 0];
         assert!(filter.contains("hello").is_ok());
         assert!(filter.contains("hello").unwrap());
-        filter.bitfield = bitvec![1, 1, 0, 1, 0, 0, 1, 1, 1, 0];
+        filter.bitfield = bitvec![1, 1, 0, 1, 0, 1, 1, 0, 1, 0];
         assert!(filter.contains("world").unwrap());
 
         assert!(!filter.contains("foobar").unwrap());
