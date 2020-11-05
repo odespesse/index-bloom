@@ -29,6 +29,11 @@ impl Index {
         }
     }
 
+    pub fn restore(content: &str) -> Self {
+        let deserialized: Index = serde_json::from_str(&content).expect("Unable to parse dump file");
+        return deserialized;
+    }
+
     pub fn index(&mut self, name: String, content: &str) -> Result<(), Error> {
         let filter = self.bloom_filters.entry(name).or_insert(BloomFilter::new(self.capacity, self.error_rate));
         for line in content.lines() {
@@ -70,6 +75,7 @@ impl Index {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     #[test]
     fn simple_content() {
@@ -118,6 +124,14 @@ mod tests {
         let mut index = Index::new();
         index.index("file1.txt".to_string(), "word1 word2\nword3").expect("Unable to index data");
         assert_eq!(vec!["file1.txt"], index.search("(word1) Word2, word3?").unwrap().unwrap());
+    }
+
+    #[test]
+    fn restore_from_str() {
+        let path = "./test/data/test_restore.json";
+        let index_content = fs::read_to_string(path).expect(format!("Unable to read dump file {}", &path).as_str());
+        let index = Index::restore(&index_content);
+        assert_eq!(vec!["file1.txt"], index.search("word1 word2 word3").unwrap().unwrap());
     }
 }
 
