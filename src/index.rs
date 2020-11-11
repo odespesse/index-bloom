@@ -12,14 +12,7 @@ pub struct Index {
 }
 
 impl Index {
-    pub fn new() -> Self {
-        Index {
-            error_rate: 0.01,
-            bloom_filters: HashMap::new()
-        }
-    }
-
-    pub fn with_params(error_rate: f32) -> Self {
+    pub fn new(error_rate: f32) -> Self {
         Index {
             error_rate,
             bloom_filters: HashMap::new()
@@ -87,7 +80,7 @@ mod tests {
 
     #[test]
     fn simple_content() {
-        let mut index = Index::new();
+        let mut index = Index::new(0.01);
         let content = "word1 word2\nword3\n\nword4";
         index.index("simple_content.txt".to_string(), content).expect("Unable to index data");
         assert!(index.search("word1").is_ok());
@@ -100,7 +93,7 @@ mod tests {
 
     #[test]
     fn several_matches() {
-        let mut index = Index::new();
+        let mut index = Index::new(0.01);
         index.index("file1.txt".to_string(), "word1 word2\nword3").expect("Unable to index data");
         index.index("file2.txt".to_string(), "word1 word3").expect("Unable to index data");
         assert_eq!(vec!["file1.txt"], index.search("word2").unwrap().unwrap());
@@ -111,7 +104,7 @@ mod tests {
 
     #[test]
     fn indexing_twice_replace() {
-        let mut index = Index::new();
+        let mut index = Index::new(0.01);
         index.index("file1.txt".to_string(), "word1").expect("Unable to index data");
         assert_eq!(vec!["file1.txt"], index.search("word1").unwrap().unwrap());
         assert_eq!(None, index.search("word2").unwrap());
@@ -122,14 +115,14 @@ mod tests {
 
     #[test]
     fn multi_keywords_search() {
-        let mut index = Index::new();
+        let mut index = Index::new(0.01);
         index.index("file1.txt".to_string(), "word1 word2\nword3").expect("Unable to index data");
         assert_eq!(vec!["file1.txt"], index.search("word1 word2").unwrap().unwrap());
     }
 
     #[test]
     fn clean_keywords_before_search() {
-        let mut index = Index::new();
+        let mut index = Index::new(0.01);
         index.index("file1.txt".to_string(), "word1 word2\nword3").expect("Unable to index data");
         assert_eq!(vec!["file1.txt"], index.search("(word1) Word2, word3?").unwrap().unwrap());
     }
