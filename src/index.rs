@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use serde::{Serialize, Deserialize};
 
 use crate::bloom_filter::BloomFilter;
@@ -7,7 +7,6 @@ use crate::errors::Error;
 
 #[derive(Serialize, Deserialize)]
 pub struct Index {
-    capacity: u32,
     error_rate: f32,
     bloom_filters: HashMap<String, BloomFilter>
 }
@@ -15,15 +14,13 @@ pub struct Index {
 impl Index {
     pub fn new() -> Self {
         Index {
-            capacity: 1000,
-            error_rate: 0.1,
+            error_rate: 0.01,
             bloom_filters: HashMap::new()
         }
     }
 
-    pub fn with_params(capacity: u32, error_rate: f32) -> Self {
+    pub fn with_params(error_rate: f32) -> Self {
         Index {
-            capacity,
             error_rate,
             bloom_filters: HashMap::new()
         }
@@ -35,13 +32,13 @@ impl Index {
     }
 
     pub fn index(&mut self, name: String, content: &str) -> Result<(), Error> {
-        let filter = self.bloom_filters.entry(name).or_insert(BloomFilter::new(self.capacity, self.error_rate));
-        for line in content.lines() {
-            let tokens = Tokens::new(line);
-            for token in tokens {
-                filter.insert(&token)?;
-            }
+        let tokens_agg = self.aggregate_tokens(content);
+        let capacity = tokens_agg.len();
+        let mut filter = BloomFilter::new(capacity, self.error_rate);
+        for token in tokens_agg {
+            filter.insert(&token)?;
         }
+        self.bloom_filters.insert(name, filter);
         Ok(())
     }
 
@@ -68,6 +65,17 @@ impl Index {
         } else {
             Ok(None)
         }
+    }
+
+    fn aggregate_tokens(&self, content: &str) -> HashSet<String> {
+        let mut unique_tokens = HashSet::new();
+        for line in content.lines() {
+            let tokens = Tokens::new(line);
+            for token in tokens {
+                unique_tokens.insert(token);
+            }
+        }
+        unique_tokens
     }
 }
 
@@ -102,13 +110,13 @@ mod tests {
     }
 
     #[test]
-    fn two_steps_indexing() {
+    fn indexing_twice_replace() {
         let mut index = Index::new();
         index.index("file1.txt".to_string(), "word1").expect("Unable to index data");
         assert_eq!(vec!["file1.txt"], index.search("word1").unwrap().unwrap());
         assert_eq!(None, index.search("word2").unwrap());
         index.index("file1.txt".to_string(), "word2").expect("Unable to index data");
-        assert_eq!(vec!["file1.txt"], index.search("word1").unwrap().unwrap());
+        assert_eq!(None, index.search("word1").unwrap());
         assert_eq!(vec!["file1.txt"], index.search("word2").unwrap().unwrap());
     }
 

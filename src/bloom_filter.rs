@@ -14,7 +14,7 @@ pub struct BloomFilter {
 }
 
 impl BloomFilter {
-    pub fn new(capacity: u32, err_rate: f32) -> Self {
+    pub fn new(capacity: usize, err_rate: f32) -> Self {
         if capacity == 0 {
             panic!("Invalid Bloom filter capacity: cannot be 0");
         }
