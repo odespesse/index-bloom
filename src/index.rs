@@ -24,7 +24,7 @@ impl Index {
         return deserialized;
     }
 
-    pub fn index(&mut self, name: String, content: &str) -> Result<(), Error> {
+    pub fn ingest(&mut self, name: String, content: &str) -> Result<(), Error> {
         let tokens_agg = self.aggregate_tokens(content);
         let capacity = tokens_agg.len();
         let mut filter = BloomFilter::new(capacity, self.error_rate);
@@ -82,7 +82,7 @@ mod tests {
     fn simple_content() {
         let mut index = Index::new(0.01);
         let content = "word1 word2\nword3\n\nword4";
-        index.index("simple_content.txt".to_string(), content).expect("Unable to index data");
+        index.ingest("simple_content.txt".to_string(), content).expect("Unable to ingest data");
         assert!(index.search("word1").is_ok());
         assert_eq!(vec!["simple_content.txt"], index.search("word1").unwrap().unwrap());
         assert_eq!(vec!["simple_content.txt"], index.search("word2").unwrap().unwrap());
@@ -94,8 +94,8 @@ mod tests {
     #[test]
     fn several_matches() {
         let mut index = Index::new(0.01);
-        index.index("file1.txt".to_string(), "word1 word2\nword3").expect("Unable to index data");
-        index.index("file2.txt".to_string(), "word1 word3").expect("Unable to index data");
+        index.ingest("file1.txt".to_string(), "word1 word2\nword3").expect("Unable to ingest data");
+        index.ingest("file2.txt".to_string(), "word1 word3").expect("Unable to ingest data");
         assert_eq!(vec!["file1.txt"], index.search("word2").unwrap().unwrap());
         let expected = vec!["file1.txt", "file2.txt"];
         assert_eq!(expected, index.search("word1").unwrap().unwrap());
@@ -103,12 +103,12 @@ mod tests {
     }
 
     #[test]
-    fn indexing_twice_replace() {
+    fn ingesting_twice_replace() {
         let mut index = Index::new(0.01);
-        index.index("file1.txt".to_string(), "word1").expect("Unable to index data");
+        index.ingest("file1.txt".to_string(), "word1").expect("Unable to ingest data");
         assert_eq!(vec!["file1.txt"], index.search("word1").unwrap().unwrap());
         assert_eq!(None, index.search("word2").unwrap());
-        index.index("file1.txt".to_string(), "word2").expect("Unable to index data");
+        index.ingest("file1.txt".to_string(), "word2").expect("Unable to ingest data");
         assert_eq!(None, index.search("word1").unwrap());
         assert_eq!(vec!["file1.txt"], index.search("word2").unwrap().unwrap());
     }
@@ -116,14 +116,14 @@ mod tests {
     #[test]
     fn multi_keywords_search() {
         let mut index = Index::new(0.01);
-        index.index("file1.txt".to_string(), "word1 word2\nword3").expect("Unable to index data");
+        index.ingest("file1.txt".to_string(), "word1 word2\nword3").expect("Unable to ingest data");
         assert_eq!(vec!["file1.txt"], index.search("word1 word2").unwrap().unwrap());
     }
 
     #[test]
     fn clean_keywords_before_search() {
         let mut index = Index::new(0.01);
-        index.index("file1.txt".to_string(), "word1 word2\nword3").expect("Unable to index data");
+        index.ingest("file1.txt".to_string(), "word1 word2\nword3").expect("Unable to ingest data");
         assert_eq!(vec!["file1.txt"], index.search("(word1) Word2, word3?").unwrap().unwrap());
     }
 
