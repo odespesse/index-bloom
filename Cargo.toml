@@ -1,8 +1,12 @@
 [package]
 name = "index-bloom"
+description = "A lightweight search index based solely on bloom filters."
 version = "0.3.0"
 authors = ["Olivier Despesse <olived19@gmail.com>"]
 edition = "2018"
+repository="https://github.com/odespesse/index-bloom"
+readme="README.md"
+keywords=["bloom-filter", "search-engine", "library"]
 
 [dependencies]
 blake2 = "0.9.0"

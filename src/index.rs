@@ -5,6 +5,7 @@ use crate::bloom_filter::BloomFilter;
 use crate::tokens::Tokens;
 use crate::errors::Error;
 
+/// An full-text search index.
 #[derive(Serialize, Deserialize)]
 pub struct Index {
     error_rate: f32,
@@ -12,6 +13,16 @@ pub struct Index {
 }
 
 impl Index {
+    /// Constructs a new, empty `Index` with the specified error_rate.
+    ///
+    /// The `error_rate` is the probability of false positive when searching for keywords
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use index_bloom::Index;
+    /// let mut index = Index::new(0.00001);
+    /// ```
     pub fn new(error_rate: f32) -> Self {
         Index {
             error_rate,
@@ -19,11 +30,47 @@ impl Index {
         }
     }
 
+    /// Restore an `Index` from a previous dump.
+    ///
+    /// A dump is an `Index` serialized in JSON format.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the content is not a valid `Index` representation.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use index_bloom::Index;
+    /// let index_dump = "{\"error_rate\":0.1,\"bloom_filters\":{\"file1.txt\":{\"key_size\":4,\"bitfield\":[8,130,65,18,131,164],\"bitfield_size\":48}}}";
+    /// let index = Index::restore(&index_dump);
+    /// ```
     pub fn restore(content: &str) -> Self {
         let deserialized: Index = serde_json::from_str(&content).expect("Unable to parse dump file");
         return deserialized;
     }
 
+    /// Ingest a new document.
+    ///
+    /// Insert each word of `content` in the index and identifies them under the given `name`.
+    /// To ingest the same key twice will replace its content in the `Index`.
+    ///
+    /// # Errors
+    ///
+    /// If a word in the content cannot be hashed then an error is returned.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use index_bloom::Index;
+    /// # use index_bloom::Error;
+    /// # fn search_index() -> Result<(), Error> {
+    /// let mut index = Index::new(0.00001);
+    /// let first_content = "A very very long content...";
+    /// index.ingest("foo".to_string(), first_content)?;
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn ingest(&mut self, name: String, content: &str) -> Result<(), Error> {
         let tokens_agg = self.aggregate_tokens(content);
         let capacity = tokens_agg.len();
@@ -35,6 +82,34 @@ impl Index {
         Ok(())
     }
 
+    /// Search keywords in every documents.
+    ///
+    /// Splits `keywords` and searches for each word in all documents with a boolean AND.
+    /// The result may contain false positives (documents not containing all the keywords) according to an error rate set at the creation of the `Index` (see [`Index::new`]).
+    ///
+    /// # Errors
+    ///
+    /// If a word in the content cannot be hashed then an error is returned.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use index_bloom::Index;
+    /// # use index_bloom::Error;
+    /// # fn search_index() -> Result<(), Error> {
+    /// # let mut index = Index::new(0.00001);
+    /// let hits = index.search("content")?;
+    /// match hits {
+    ///      Some(documents) => {
+    ///          for doc in documents {
+    ///             println!("Found at {}", doc);
+    ///          }
+    ///      },
+    ///      None => println!("Not found")
+    /// }
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn search(&self, keywords: &str) -> Result<Option<Vec<&String>>, Error> {
         let mut result :Vec<&String> = Vec::new();
         for (name, filter) in &self.bloom_filters {

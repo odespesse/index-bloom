@@ -1,1 +1,1 @@
-{"capacity":10,"error_rate":0.1,"bloom_filters":{"file1.txt":{"key_size":4,"bitfield":[8,130,65,18,131,164],"bitfield_size":48}}}
+{"error_rate":0.1,"bloom_filters":{"file1.txt":{"key_size":4,"bitfield":[8,130,65,18,131,164],"bitfield_size":48}}}
