@@ -1,7 +1,7 @@
 [package]
 name = "index-bloom"
 description = "A lightweight search index based solely on bloom filters."
-version = "0.3.0"
+version = "1.0.0"
 authors = ["Olivier Despesse <olived19@gmail.com>"]
 edition = "2018"
 repository="https://github.com/odespesse/index-bloom"
